@@ -14,15 +14,15 @@ public class Day1 extends Puzzle {
 
   @Override
   public String part1() {
-    return getSumOfNFirstElfs(1);
+    return getSumOfNFirstElves(1);
   }
 
   @Override
   public String part2() {
-    return getSumOfNFirstElfs(3);
+    return getSumOfNFirstElves(3);
   }
 
-  private String getSumOfNFirstElfs(int n) {
+  private String getSumOfNFirstElves(int n) {
     List<Integer> caloriesPerElf = new ArrayList<>();
     int elfCalories = 0;
 

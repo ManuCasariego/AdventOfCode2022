@@ -17,7 +17,7 @@ public class Day3 extends Puzzle {
     Integer count = 0;
     for (String s : getInputLines()) {
       List<String> stringInHalf = splitStringInHalf(s);
-      Character repeatedChar = getRepeatedChar2(stringInHalf);
+      Character repeatedChar = getRepeatedChar(stringInHalf);
       count += getPriority(repeatedChar);
     }
     return String.valueOf(count);
@@ -30,7 +30,7 @@ public class Day3 extends Puzzle {
     for (String s : getInputLines()) {
       elfGroup.add(s);
       if (elfGroup.size() == 3) {
-        Character c = getRepeatedChar2(elfGroup);
+        Character c = getRepeatedChar(elfGroup);
         count += getPriority(c);
         elfGroup = new ArrayList<>();
       }
@@ -44,33 +44,6 @@ public class Day3 extends Puzzle {
     return List.of(firstHalf, secondHalf);
   }
 
-  private Character getRepeatedChar(List<String> list) {
-    if (list.size() == 0) return null;
-    int n = list.size();
-    Map<Character, Boolean[]> frequency = new HashMap<>();
-
-    for (int i = 0; i < n; i++) {
-      String s = list.get(i);
-      for (int j = 0; j < s.length(); j++) {
-        Character c = s.charAt(j);
-        if (frequency.containsKey(c)) {
-          frequency.get(c)[i] = true;
-        } else {
-          frequency.put(c, new Boolean[n]);
-          frequency.get(c)[i] = true;
-        }
-
-      }
-    }
-    for (Map.Entry<Character, Boolean[]> entry : frequency.entrySet()) {
-      if (allTrue(entry.getValue())) {
-        return entry.getKey();
-      }
-    }
-    return null;
-  }
-
-
   private String sortString(String s) {
     return s.chars()
       .sorted()
@@ -78,7 +51,7 @@ public class Day3 extends Puzzle {
       .toString();
   }
 
-  private Character getRepeatedChar2(List<String> list) {
+  private Character getRepeatedChar(List<String> list) {
     if (list.size() == 0) return null;
     int n = list.size();
     List<String> sortedStrings = new ArrayList<>();
@@ -127,19 +100,6 @@ public class Day3 extends Puzzle {
     }
     return true;
   }
-
-  private boolean allTrue(Boolean[] booleans) {
-    boolean response = true;
-    try {
-      for (Boolean bool : booleans) {
-        response = response && bool;
-      }
-    } catch (Exception e) {
-      return false;
-    }
-    return response;
-  }
-
 
   public int getPriority(Character c) {
     if (Character.isUpperCase(c)) {

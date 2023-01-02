@@ -41,7 +41,7 @@ public class Day5 extends Puzzle {
   }
 
   private List<Operation> getOperationsFromInput() {
-    return Arrays.stream(this.getInput().split("\n\n")[1].split("\n")).map(Operation::new).collect(Collectors.toList());
+    return Arrays.stream(this.getInput().split("\n\n")[1].split("\n")).map(Operation::parse).collect(Collectors.toList());
   }
 
   private Board getBoardFromInput() {
@@ -104,19 +104,15 @@ public class Day5 extends Puzzle {
     }
   }
 
-  private class Operation {
-    public int move;
-    public int from;
-    public int to;
+  private record Operation (int move, int from, int to) {
 
-    public Operation(String s) {
+    public static Operation parse(String s) {
       s = s.replace("move ", "");
       s = s.replace(" from ", ",");
       s = s.replace(" to ", ",");
       String[] split = s.split(",");
-      this.move = Integer.parseInt(split[0]);
-      this.from = Integer.parseInt(split[1]);
-      this.to = Integer.parseInt(split[2]);
+      return new Operation(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+
     }
 
   }
