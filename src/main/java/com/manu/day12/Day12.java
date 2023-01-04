@@ -73,9 +73,7 @@ public class Day12 extends Puzzle {
       Position currentPosition = positionsToVisit.removeFirst();
       Height currentHeight = board.getHeightInPosition(currentPosition);
       currentPosition.getNeighbors().stream().map(board::getHeightInPosition)
-        .filter(Objects::nonNull).filter(neighbor -> {
-          return !positionMinimumNumberOfStepsMap.containsKey(neighbor.position());
-        }).filter(neighbor -> {
+        .filter(Objects::nonNull).filter(neighbor -> !positionMinimumNumberOfStepsMap.containsKey(neighbor.position())).filter(neighbor -> {
           assert currentHeight != null;
           return currentHeight.elevation() + 1 >= neighbor.elevation();
         }).forEach(neighbor -> {
@@ -83,7 +81,6 @@ public class Day12 extends Puzzle {
           positionMinimumNumberOfStepsMap.put(neighbor.position(), positionMinimumNumberOfStepsMap.get(currentPosition) + 1);
         });
     }
-//    board.printElevations(positionMinimumNumberOfStepsMap);
     return positionMinimumNumberOfStepsMap;
   }
 
