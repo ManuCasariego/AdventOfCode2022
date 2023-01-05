@@ -24,12 +24,9 @@ public class Day15 extends Puzzle {
     // find the only point where we could have an undetected beacon
     // between 0,0 and 4_000_000, 4_000_000 (20,20 for ex)
     int max = 4_000_000;
-    long startingTime = System.currentTimeMillis();
     for (Map.Entry<Position, Integer> radiusEntry : b.radius.entrySet()) {
       for (Position p : buildPerimeter(radiusEntry.getKey(), radiusEntry.getValue() + 1, 0, max)) {
         if (b.undetectedBeacon(p)) {
-          long seconds = (System.currentTimeMillis() - startingTime) / 1000;
-          System.out.println("it took " + seconds + " seconds.");
           return String.valueOf((long) p.x * 4_000_000 + (long) p.y);
         }
       }

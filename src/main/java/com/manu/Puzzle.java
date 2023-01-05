@@ -12,8 +12,13 @@ public abstract class Puzzle {
   public abstract String part2();
 
   public void printSolutions() {
-    System.out.println("First part solution: " + part1());
-    System.out.println("Second part solution: " + part2());
+    long timeBefore = System.currentTimeMillis();
+    String solution1 = part1();
+    long timeMiddle = System.currentTimeMillis();
+    System.out.println("First part solution: (time taken: " + (timeMiddle - timeBefore) + "ms) --> " + solution1);
+    String solution2 = part2();
+    long timeAfter = System.currentTimeMillis();
+    System.out.println("Second part solution: (time taken: " + (timeAfter - timeMiddle) + "ms) --> " + solution2);
   }
 
   public String[] getInputLines() {
