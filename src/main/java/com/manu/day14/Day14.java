@@ -11,13 +11,14 @@ public class Day14 extends Puzzle {
     super(input);
   }
 
+  private static final Boolean DEBUG = false;
 
   @Override
   public String part1() {
     // sand falls from 500, 0
     Board b = buildBoard();
     int cycles = sandCyclesOnBoard(b);
-    b.draw();
+    if (DEBUG) b.draw();
     return String.valueOf(cycles);
   }
 
@@ -26,7 +27,7 @@ public class Day14 extends Puzzle {
     Board b = buildBoard();
     addFloorToBoard(b);
     int cycles = sandCyclesOnBoard(b);
-    b.draw();
+    if (DEBUG) b.draw();
     return String.valueOf(cycles);
   }
 
