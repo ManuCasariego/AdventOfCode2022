@@ -14,7 +14,7 @@ public class Day14 extends Puzzle {
 
   @Override
   public String part1() {
-    // snow falls from 500, 0
+    // sand falls from 500, 0
     Board b = buildBoard();
     int cycles = sandCyclesOnBoard(b);
     b.draw();
@@ -36,13 +36,13 @@ public class Day14 extends Puzzle {
 
     Position sand = new Position(500, 0);
     while (count < 1000 && !b.positions.contains(new Position(500, 0))) {
-      if (!b.positions.contains(sand.moveDown())) {
-        sand = sand.moveDown();
+      if (!b.positions.contains(sand.down())) {
+        sand = sand.down();
         count++;
-      } else if (!b.positions.contains(sand.moveDown().moveLeft())) {
-        sand = sand.moveDown().moveLeft();
-      } else if (!b.positions.contains(sand.moveDown().moveRight())) {
-        sand = sand.moveDown().moveRight();
+      } else if (!b.positions.contains(sand.down().left())) {
+        sand = sand.down().left();
+      } else if (!b.positions.contains(sand.down().right())) {
+        sand = sand.down().right();
       } else {
         // nowhere to go
         b.positions.add(sand);
@@ -115,15 +115,15 @@ public class Day14 extends Puzzle {
   }
 
   private record Position(int x, int y) {
-    private Position moveRight() {
+    private Position right() {
       return new Position(this.x + 1, this.y);
     }
 
-    private Position moveLeft() {
+    private Position left() {
       return new Position(this.x - 1, this.y);
     }
 
-    private Position moveDown() {
+    private Position down() {
       return new Position(this.x, this.y + 1);
     }
 
