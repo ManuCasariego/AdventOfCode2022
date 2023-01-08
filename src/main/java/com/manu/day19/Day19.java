@@ -27,7 +27,6 @@ public class Day19 extends Puzzle {
     int totalQualityLevel = 0;
     for (Blueprint blueprint : blueprintList) {
       totalQualityLevel += ++i * getMaxPossibleGeodes(blueprint, new Resources(), 24, new CollectionRobots(1, 0, 0, 0));
-      System.out.println("blueprint done");
       cacheMap = new HashMap<>();
     }
     return String.valueOf(totalQualityLevel);
@@ -41,7 +40,6 @@ public class Day19 extends Puzzle {
     int totalQualityLevel = 1;
     for (Blueprint blueprint : blueprintList) {
       totalQualityLevel *= getMaxPossibleGeodes(blueprint, new Resources(), 32, new CollectionRobots(1, 0, 0, 0));
-      System.out.println("blueprint done");
       cacheMap = new HashMap<>();
     }
     return String.valueOf(totalQualityLevel);
@@ -89,10 +87,9 @@ public class Day19 extends Puzzle {
         // the result will be 0 anyway
         continue;
       }
-      boolean sub = false;
       maxPossibleGeodes = Math.max(maxPossibleGeodes, getMaxPossibleGeodes(
         blueprint,
-        resources.addCycleOfResources(collectionRobots, (sub) ? whatToBuild.minutesToWait - 1 : whatToBuild.minutesToWait).removeCostResources(whatToBuild.machine, blueprint),
+        resources.addCycleOfResources(collectionRobots, whatToBuild.minutesToWait).removeCostResources(whatToBuild.machine, blueprint),
         remainingTime - whatToBuild.minutesToWait,
         collectionRobots.addCollectionRobots(whatToBuild.machine)));
     }
