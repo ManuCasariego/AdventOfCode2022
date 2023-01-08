@@ -11,23 +11,22 @@ public class Day19 extends Puzzle {
     super(input);
   }
 
+  HashMap<CacheClass, Integer> cacheMap = new HashMap<>();
 
   @Override
   public String part1() {
     // objective -> to have as many geodes as possible
     // you start with 1 ore collection robot
     // from ore you can get either more ore collection robots or clay collection robots
-    // from same ores and a lot of clay you can get obsidian collection robots
+    // from some ores and a lot of clay you can get obsidian collection robots
     // from ores and obsidian you can build the geode collection robots that you need
-
-    // so it makes sense that you almost always prioritize clay collection, but let's try to make an algorithm that
-    // calculates every possible path, and then we'll choose the path that got the most geodes
+    // you can only build one robot at a time
     List<Blueprint> blueprintList = buildBlueprintList();
 
     int i = 0;
     int totalQualityLevel = 0;
     for (Blueprint blueprint : blueprintList) {
-//      totalQualityLevel += ++i * getMaxPossibleGeodes(blueprint, new Resources(), 24, new CollectionRobots(1, 0, 0, 0));
+      totalQualityLevel += ++i * getMaxPossibleGeodes(blueprint, new Resources(), 24, new CollectionRobots(1, 0, 0, 0));
       System.out.println("blueprint done");
       cacheMap = new HashMap<>();
     }
@@ -37,12 +36,11 @@ public class Day19 extends Puzzle {
 
   @Override
   public String part2() {
-    List<Blueprint> blueprintList = buildBlueprintList().subList(0,3);
+    List<Blueprint> blueprintList = buildBlueprintList().subList(0, 3);
 
-    int i = 0;
     int totalQualityLevel = 1;
     for (Blueprint blueprint : blueprintList) {
-      totalQualityLevel *=  getMaxPossibleGeodes(blueprint, new Resources(), 32, new CollectionRobots(1, 0, 0, 0));
+      totalQualityLevel *= getMaxPossibleGeodes(blueprint, new Resources(), 32, new CollectionRobots(1, 0, 0, 0));
       System.out.println("blueprint done");
       cacheMap = new HashMap<>();
     }
@@ -58,7 +56,7 @@ public class Day19 extends Puzzle {
     }
     return blueprintList;
   }
-  HashMap<CacheClass, Integer> cacheMap = new HashMap<>();
+
 
   private int getMaxPossibleGeodes(Blueprint blueprint, Resources resources, int remainingTime, CollectionRobots collectionRobots) {
     // recursive method, beginning of the turn
@@ -66,73 +64,102 @@ public class Day19 extends Puzzle {
 
     CacheClass cc = new CacheClass(blueprint, resources, remainingTime, collectionRobots);
     if (cacheMap.containsKey(cc)) {
-//      System.out.println("cache hit");
       return cacheMap.get(cc);
     }
 
     int maxPossibleGeodes = 0;
 
-    // then we need to calculate every possible combination of machines we could build and try every path
-    // how to do that??
-    for (CollectionRobots possibleCollectionRobots : getPossibleCollectionRobotsWeCouldBuild(blueprint, resources)) {
-      if (possibleCollectionRobots.oreCollectionRobots == 1 && collectionRobots.oreCollectionRobots == blueprint.getMaxNumberOfOreRobotsNeeded() ||
-        possibleCollectionRobots.clayCollectionRobots == 1 && collectionRobots.clayCollectionRobots == blueprint.getMaxNumberOfClayRobotsNeeded() ||
-        possibleCollectionRobots.obsidianCollectionRobots == 1 && collectionRobots.obsidianCollectionRobots == blueprint.getMaxNumberOfObsidianRobotsNeeded()
+    Set<WhatToBuild> whatToBuildOptions = whatToBuild(blueprint, resources, collectionRobots);
+    // adding the option to wait for the time to finish
+    whatToBuildOptions.add(new WhatToBuild(Build.NONE, remainingTime));
+
+    // iterating for every possible path we could take, and we will only keep the path that returns the most geodes
+    for (WhatToBuild whatToBuild : whatToBuildOptions) {
+      if (whatToBuild.machine == Build.ORE_MACHINE && collectionRobots.oreCollectionRobots == blueprint.getMaxNumberOfOreRobotsNeeded() ||
+        whatToBuild.machine == Build.CLAY_MACHINE && collectionRobots.clayCollectionRobots == blueprint.getMaxNumberOfClayRobotsNeeded() ||
+        whatToBuild.machine == Build.OBSIDIAN_MACHINE && collectionRobots.obsidianCollectionRobots == blueprint.getMaxNumberOfObsidianRobotsNeeded()
       ) {
         continue;
       }
+      if (whatToBuild.minutesToWait > remainingTime) {
+        continue;
+      }
+      if (whatToBuild.minutesToWait == remainingTime && collectionRobots.geodeCollectionRobots == 0) {
+        // if you are spending all your time and still have 0 geode machines then there's no point on exploring that path
+        // the result will be 0 anyway
+        continue;
+      }
+      boolean sub = false;
       maxPossibleGeodes = Math.max(maxPossibleGeodes, getMaxPossibleGeodes(
         blueprint,
-        resources.addCycleOfResources(collectionRobots, 1).removeCostResources(possibleCollectionRobots, blueprint),
-        remainingTime - 1,
-        collectionRobots.addCollectionRobots(possibleCollectionRobots)));
+        resources.addCycleOfResources(collectionRobots, (sub) ? whatToBuild.minutesToWait - 1 : whatToBuild.minutesToWait).removeCostResources(whatToBuild.machine, blueprint),
+        remainingTime - whatToBuild.minutesToWait,
+        collectionRobots.addCollectionRobots(whatToBuild.machine)));
     }
+
+    // populating the cache
     cacheMap.put(cc, maxPossibleGeodes);
     return maxPossibleGeodes;
   }
 
 
-  private record CacheClass(Blueprint blueprint, Resources resources, int remainingTime,
-                            CollectionRobots collectionRobots) {
-  }
+  private Set<WhatToBuild> whatToBuild(Blueprint blueprint, Resources resources, CollectionRobots collectionRobots) {
+    // this method is gonna return all possible machines we could build, including the time it would take us to wait for the
+    // needed resources and build the machine
 
-  /**
-   * you can only build one robot at a time
-   *
-   * @param blueprint
-   * @param resources
-   * @return
-   */
-  private Set<CollectionRobots> getPossibleCollectionRobotsWeCouldBuild(Blueprint blueprint, Resources resources) {
+    Set<WhatToBuild> whatToBuild = new HashSet<>();
 
-    Set<CollectionRobots> collectionRobotsSet = new HashSet<>();
-    // create nothing
-    collectionRobotsSet.add(new CollectionRobots(0, 0, 0, 0));
-
-
-    // can we create an ore collection robot?
+    // can we build a ore collection machine??
+    // we need to check if we have the blueprints OR the collection robots and wait for the resources
     if (resources.canWeBuildAnOreCollectionRobot(blueprint)) {
-      collectionRobotsSet.add(new CollectionRobots(1, 0, 0, 0));
+      whatToBuild.add(new WhatToBuild(Build.ORE_MACHINE, 1));
+    } else if (collectionRobots.oreCollectionRobots > 0) {
+      // we could eventually build it
+      int minutesToWait = Math.ceilDiv((blueprint.oreCollectionRobotCost.oreCost - resources.oreCount), collectionRobots.oreCollectionRobots);
+      // adding the extra minute to build the machine
+      minutesToWait++;
+      whatToBuild.add(new WhatToBuild(Build.ORE_MACHINE, minutesToWait));
     }
 
-    // can we create a clay collection robot?
     if (resources.canWeBuildAClayCollectionRobot(blueprint)) {
-      collectionRobotsSet.add(new CollectionRobots(0, 1, 0, 0));
+      whatToBuild.add(new WhatToBuild(Build.CLAY_MACHINE, 1));
+    } else if (collectionRobots.oreCollectionRobots > 0) {
+      // we could eventually build it
+      int minutesToWait = Math.ceilDiv((blueprint.clayCollectionRobotCost.oreCost - resources.oreCount), collectionRobots.oreCollectionRobots);
+      // adding the extra minute to build the machine
+      minutesToWait++;
+      whatToBuild.add(new WhatToBuild(Build.CLAY_MACHINE, minutesToWait));
     }
 
-    // can we create an obsidian collection robot?
+
     if (resources.canWeBuildAnObsidianCollectionRobot(blueprint)) {
-      collectionRobotsSet.add(new CollectionRobots(0, 0, 1, 0));
+      whatToBuild.add(new WhatToBuild(Build.OBSIDIAN_MACHINE, 1));
+    } else if (collectionRobots.oreCollectionRobots > 0 && collectionRobots.clayCollectionRobots > 1) {
+      // we could eventually build it
+      int minutesToWaitForOre = Math.ceilDiv((blueprint.obsidianCollectionRobotCost.oreCost - resources.oreCount), collectionRobots.oreCollectionRobots);
+      int minutesToWaitForClay = Math.ceilDiv((blueprint.obsidianCollectionRobotCost.clayCost - resources.clayCount), collectionRobots.clayCollectionRobots);
+      int minutesToWait = Math.max(minutesToWaitForOre, minutesToWaitForClay);
+
+      // adding the extra minute to build the machine
+      minutesToWait++;
+      whatToBuild.add(new WhatToBuild(Build.OBSIDIAN_MACHINE, minutesToWait));
     }
 
-    // can we create a geode collection robot?
+
     if (resources.canWeBuildAGeodeCollectionRobot(blueprint)) {
-      // if we can create a geode collection robot then we do it - it's always worth it
-      collectionRobotsSet = new HashSet<>();
-      collectionRobotsSet.add(new CollectionRobots(0, 0, 0, 1));
+      whatToBuild.add(new WhatToBuild(Build.GEODE_MACHINE, 1));
+    } else if (collectionRobots.oreCollectionRobots > 0 && collectionRobots.obsidianCollectionRobots > 1) {
+      // we could eventually build it
+      int minutesToWaitForOre = Math.ceilDiv((blueprint.geodeCollectionRobotCost.oreCost - resources.oreCount), collectionRobots.oreCollectionRobots);
+      int minutesToWaitForObsidian = Math.ceilDiv((blueprint.geodeCollectionRobotCost.obsidianCost - resources.obsidianCount), collectionRobots.obsidianCollectionRobots);
+      int minutesToWait = Math.max(minutesToWaitForOre, minutesToWaitForObsidian);
+
+      // adding the extra minute to build the machine
+      minutesToWait++;
+      whatToBuild.add(new WhatToBuild(Build.GEODE_MACHINE, minutesToWait));
     }
 
-    return collectionRobotsSet;
+    return whatToBuild;
   }
 
   private record CollectionRobots(int oreCollectionRobots,
@@ -146,9 +173,9 @@ public class Day19 extends Puzzle {
         obsidianCollectionRobots + obsidian, geodeCollectionRobots + geode);
     }
 
-    private CollectionRobots addCollectionRobots(CollectionRobots collectionRobots) {
-      return addCollectionRobots(collectionRobots.oreCollectionRobots, collectionRobots.clayCollectionRobots,
-        collectionRobots.obsidianCollectionRobots, collectionRobots.geodeCollectionRobots);
+    private CollectionRobots addCollectionRobots(Build machine) {
+      return addCollectionRobots((machine == Build.ORE_MACHINE) ? 1 : 0, (machine == Build.CLAY_MACHINE) ? 1 : 0,
+        (machine == Build.OBSIDIAN_MACHINE) ? 1 : 0, (machine == Build.GEODE_MACHINE) ? 1 : 0);
     }
   }
 
@@ -160,7 +187,7 @@ public class Day19 extends Puzzle {
 
     private Resources addCycleOfResources(int ore, int clay, int obsidian, int geode, int cycles) {
       return new Resources(oreCount + ore * cycles, clayCount + clay * cycles,
-        obsidianCount + obsidian* cycles, geodeCount + geode * cycles);
+        obsidianCount + obsidian * cycles, geodeCount + geode * cycles);
     }
 
     private Resources addCycleOfResources(CollectionRobots collectionRobots, int cycles) {
@@ -184,17 +211,16 @@ public class Day19 extends Puzzle {
       return blueprint.geodeCollectionRobotCost.oreCost <= this.oreCount && blueprint.geodeCollectionRobotCost.obsidianCost <= this.obsidianCount;
     }
 
-    public Resources removeCostResources(CollectionRobots possibleCollectionRobots, Blueprint blueprint) {
-      if (possibleCollectionRobots.oreCollectionRobots == 1) {
-        return this.addCycleOfResources(-blueprint.oreCollectionRobotCost.oreCost, 0, 0, 0, 1);
-      } else if (possibleCollectionRobots.clayCollectionRobots == 1) {
-        return this.addCycleOfResources(-blueprint.clayCollectionRobotCost.oreCost, 0, 0, 0, 1);
-      } else if (possibleCollectionRobots.obsidianCollectionRobots == 1) {
-        return this.addCycleOfResources(-blueprint.obsidianCollectionRobotCost.oreCost, -blueprint.obsidianCollectionRobotCost.clayCost, 0, 0, 1);
-      } else if (possibleCollectionRobots.geodeCollectionRobots == 1) {
-        return this.addCycleOfResources(-blueprint.geodeCollectionRobotCost.oreCost, 0, -blueprint.geodeCollectionRobotCost.obsidianCost, 0, 1);
-      }
-      return this;
+    public Resources removeCostResources(Build machine, Blueprint blueprint) {
+      return switch (machine) {
+        case ORE_MACHINE -> this.addCycleOfResources(-blueprint.oreCollectionRobotCost.oreCost, 0, 0, 0, 1);
+        case CLAY_MACHINE -> this.addCycleOfResources(-blueprint.clayCollectionRobotCost.oreCost, 0, 0, 0, 1);
+        case OBSIDIAN_MACHINE ->
+          this.addCycleOfResources(-blueprint.obsidianCollectionRobotCost.oreCost, -blueprint.obsidianCollectionRobotCost.clayCost, 0, 0, 1);
+        case GEODE_MACHINE ->
+          this.addCycleOfResources(-blueprint.geodeCollectionRobotCost.oreCost, 0, -blueprint.geodeCollectionRobotCost.obsidianCost, 0, 1);
+        default -> this;
+      };
     }
   }
 
@@ -247,4 +273,12 @@ public class Day19 extends Puzzle {
   private record Cost(int oreCost, int clayCost, int obsidianCost) {
   }
 
+  private enum Build {ORE_MACHINE, CLAY_MACHINE, OBSIDIAN_MACHINE, GEODE_MACHINE, NONE}
+
+  private record WhatToBuild(Build machine, int minutesToWait) {
+  }
+
+  private record CacheClass(Blueprint blueprint, Resources resources, int remainingTime,
+                            CollectionRobots collectionRobots) {
+  }
 }
