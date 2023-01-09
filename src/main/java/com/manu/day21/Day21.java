@@ -27,8 +27,8 @@ public class Day21 extends Puzzle {
     // the objective here is to get 0 from the processMonkeyPart2 method
 
     // adding the new root, now its operation is a subtract
-    String rootMobkeyLine = getInput().lines().filter(s -> s.contains("root")).findFirst().orElse("null");
-    Monkey rootMonkey = Monkey.parseRootForPart2(rootMobkeyLine);
+    String rootMonkeyLine = getInput().lines().filter(s -> s.contains("root")).findFirst().orElse("null");
+    Monkey rootMonkey = Monkey.parseRootForPart2(rootMonkeyLine);
     monkeyMap.put("root", rootMonkey);
 
 
