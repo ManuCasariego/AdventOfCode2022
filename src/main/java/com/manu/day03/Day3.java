@@ -3,9 +3,7 @@ package com.manu.day03;
 import com.manu.Puzzle;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Day3 extends Puzzle {
   public Day3(String input) {
