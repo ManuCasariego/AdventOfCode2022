@@ -21,7 +21,6 @@ public class Day20 extends Puzzle {
     // keeping the numbers we need to sort in a deque
     Queue<Data> dataQueue = new ArrayDeque<>(list);
 
-//    LinkedList<Data> auxList = new LinkedList<>(list);
     // let's get things moving
     while (!dataQueue.isEmpty()) {
       Data data = dataQueue.poll();
@@ -92,7 +91,7 @@ public class Day20 extends Puzzle {
   }
 
 
-  //creating this data class so we can hold the value and the originalIndex to know in which order we should sort the numbers
+  //creating this data class, so we can hold the value and the originalIndex to know in which order we should sort the numbers
   private record Data(long value, int ogIndex) {
   }
 
