@@ -34,7 +34,7 @@ public class RunCode {
 
 
   public static void main(String[] args) throws IOException {
-    run(19);
+    run(20);
   }
 
 
@@ -78,7 +78,12 @@ public class RunCode {
 
 
   public static String loadInput(String day) throws IOException {
-    return Files.readString(Path.of(System.getProperty("user.dir") + "/src/main/java/com/manu/" + day + "/input"));
+    String separator = System.getProperty("file.separator");
+    StringBuffer sb =
+      new StringBuffer().append(System.getProperty("user.dir")).append(separator).append("src").append(separator)
+        .append("main").append(separator).append("java").append(separator).append("com").append(separator).append("manu")
+        .append(separator).append(day).append(separator).append("input");
+    return Files.readString(Path.of(sb.toString()));
   }
 
   public static String loadInput(int day) throws IOException {
