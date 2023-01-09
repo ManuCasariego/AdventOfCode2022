@@ -16,7 +16,7 @@ public class Day21 extends Puzzle {
   @Override
   public String part1() {
     var monkeyMap = buildMonkeyMap();
-    return String.valueOf(processMonkeyPart1(monkeyMap.get("root"), monkeyMap));
+    return String.format("%.0f", processMonkeyPart1(monkeyMap.get("root"), monkeyMap));
   }
 
 
@@ -27,14 +27,14 @@ public class Day21 extends Puzzle {
     // the objective here is to get 0 from the processMonkeyPart2 method
 
     // we are going to use a binary search, searching every single long from min to max, discarding half on every iteration
+    // the problem is that depending on the operations you will do, having a high max will mess with the double limits
+    Double min = -100_000_000_000_000.0;
+    Double max = 100_000_000_000_000.0;
+    Double midPoint = min + (max - min) / 2;
 
-    Long min = -100000000000000L;
-    Long max = 100000000000000L;
-    Long midPoint = min + (max - min) / 2;
-
-    Long guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
+    Double guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
     // first we need to see if it goes up or down when growing the number
-    boolean itsGoingDown = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 0L) > processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 100L);
+    boolean itsGoingDown = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 0.0) > processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 100.0);
     while (guess != 0) {
       // do binary search
       if (guess > 0) {
@@ -56,15 +56,15 @@ public class Day21 extends Puzzle {
       guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
     }
 
-    return String.valueOf(midPoint);
+    return String.format("%.0f", midPoint);
   }
 
 
-  private Long processMonkeyPart2(Monkey m, HashMap<String, Monkey> monkeyMap, Long humnNo) {
+  private Double processMonkeyPart2(Monkey m, HashMap<String, Monkey> monkeyMap, Double humnNo) {
     if (m.name.equals("root")) {
-      Long first = processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo);
-      Long second = processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
-      Long diff = first - second;
+      Double first = processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo);
+      Double second = processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
+      Double diff = first - second;
       return diff;
     } else if (m.name.equals("humn")) {
       return humnNo;
@@ -92,7 +92,7 @@ public class Day21 extends Puzzle {
   }
 
 
-  private Long processMonkeyPart1(Monkey m, HashMap<String, Monkey> monkeyMap) {
+  private Double processMonkeyPart1(Monkey m, HashMap<String, Monkey> monkeyMap) {
     switch (m.operation) {
       case NOTHING -> {
         return m.value;
@@ -124,13 +124,13 @@ public class Day21 extends Puzzle {
     return monkeyMap;
   }
 
-  private record Monkey(List<String> operationMonkeys, Operation operation, long value, String name) {
+  private record Monkey(List<String> operationMonkeys, Operation operation, Double value, String name) {
 
     public static Monkey parse(String s) {
       String[] words = s.split(" ");
       String name = words[0].replace(":", "");
       if (words.length == 2) {
-        return new Monkey(new ArrayList<>(), Operation.NOTHING, Integer.parseInt(words[1]), name);
+        return new Monkey(new ArrayList<>(), Operation.NOTHING, Double.parseDouble(words[1]), name);
       } else {
         var operationMonkeys = new ArrayList<String>();
         operationMonkeys.add(words[1]);
@@ -142,7 +142,7 @@ public class Day21 extends Puzzle {
           case "/" -> Operation.DIVISION;
           default -> Operation.NOTHING;
         };
-        return new Monkey(operationMonkeys, op, 0, name);
+        return new Monkey(operationMonkeys, op, 0.0, name);
       }
     }
   }
