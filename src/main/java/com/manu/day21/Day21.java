@@ -13,7 +13,6 @@ public class Day21 extends Puzzle {
     super(input);
   }
 
-
   @Override
   public String part1() {
     var monkeyMap = buildMonkeyMap();
@@ -29,21 +28,29 @@ public class Day21 extends Puzzle {
 
     // we are going to use a binary search, searching every single long from min to max, discarding half on every iteration
 
-    Long min = -1000000000000L;
-    Long max = 10000000000000L;
+    Long min = -100000000000000L;
+    Long max = 100000000000000L;
     Long midPoint = min + (max - min) / 2;
 
     Long guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
+    // first we need to see if it goes up or down when growing the number
+    boolean itsGoingDown = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 0L) > processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 100L);
     while (guess != 0) {
       // do binary search
       if (guess > 0) {
-        // go up
         if (min.equals(midPoint)) return "nope";
-        min = midPoint + 1;
+        if (itsGoingDown) {
+          min = midPoint + 1;
+        } else {
+          max = midPoint - 1;
+        }
       } else {
-        // go down
         if (max.equals(midPoint)) return "nope";
-        max = midPoint - 1;
+        if (itsGoingDown) {
+          max = midPoint - 1;
+        } else {
+          min = midPoint + 1;
+        }
       }
       midPoint = min + (max - min) / 2;
       guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
