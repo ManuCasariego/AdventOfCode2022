@@ -6,6 +6,7 @@ import com.manu.Puzzle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Day21 extends Puzzle {
 
@@ -16,7 +17,7 @@ public class Day21 extends Puzzle {
   @Override
   public String part1() {
     var monkeyMap = buildMonkeyMap();
-    return String.format("%.0f", processMonkeyPart1(monkeyMap.get("root"), monkeyMap));
+    return String.format("%.0f", monkeyMap.get("root").operate(monkeyMap));
   }
 
 
@@ -24,98 +25,65 @@ public class Day21 extends Puzzle {
   public String part2() {
     var monkeyMap = buildMonkeyMap();
 
-    // the objective here is to get 0 from the processMonkeyPart2 method
+    // now root monkey operation is a == , so you need both sides of the operator to return the same value
+    // they ask for the value that the monkey "humn" (you) needs to shout
+    // let's start from root and evaluate all the way to humn doing reverse operations and taking order of operations
+    // into account since the order of the values affect the result for - and /
+    var rootMonkey = monkeyMap.get("root");
+    return String.format("%.0f", recurseMonkeyTree(rootMonkey, null, monkeyMap));
+  }
 
-    // we are going to use a binary search, searching every single long from min to max, discarding half on every iteration
-    // the problem is that depending on the operations you will do, having a high max will mess with the double limits
-    Double min = -100_000_000_000_000.0;
-    Double max = 100_000_000_000_000.0;
-    Double midPoint = min + (max - min) / 2;
-
-    Double guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
-    // first we need to see if it goes up or down when growing the number
-    boolean itsGoingDown = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 0.0) > processMonkeyPart2(monkeyMap.get("root"), monkeyMap, 100.0);
-    while (guess != 0) {
-      // do binary search
-      if (guess > 0) {
-        if (min.equals(midPoint)) return "nope";
-        if (itsGoingDown) {
-          min = midPoint + 1;
-        } else {
-          max = midPoint - 1;
-        }
+  private Double recurseMonkeyTree(Monkey currentMonkey, Double currentVal, Map<String, Monkey> monkeyMap) {
+    if (currentMonkey.name.equals("humn")) return currentVal;
+    Boolean isHumnOnTheLeft = isHumnUnderThisMonkey(monkeyMap.get(currentMonkey.operationMonkeys.get(0)), monkeyMap);
+    if (currentMonkey.name.equals("root")) {
+      if (isHumnOnTheLeft) {
+        //get right side
+        currentVal = monkeyMap.get(currentMonkey.operationMonkeys.get(1)).operate(monkeyMap);
+        currentMonkey = monkeyMap.get(currentMonkey.operationMonkeys.get(0));
       } else {
-        if (max.equals(midPoint)) return "nope";
-        if (itsGoingDown) {
-          max = midPoint - 1;
-        } else {
-          min = midPoint + 1;
-        }
+        currentVal = monkeyMap.get(currentMonkey.operationMonkeys.get(0)).operate(monkeyMap);
+        currentMonkey = monkeyMap.get(currentMonkey.operationMonkeys.get(1));
       }
-      midPoint = min + (max - min) / 2;
-      guess = processMonkeyPart2(monkeyMap.get("root"), monkeyMap, midPoint);
+      return recurseMonkeyTree(currentMonkey, currentVal, monkeyMap);
     }
 
-    return String.format("%.0f", midPoint);
+    Double valWhereHumnIsNot;
+
+    if (isHumnOnTheLeft) {
+      //get value from the right side
+      valWhereHumnIsNot = monkeyMap.get(currentMonkey.operationMonkeys.get(1)).operate(monkeyMap);
+      Monkey.Operation currentMonkeyOp = currentMonkey.operation;
+
+      // perform operation
+      switch (currentMonkeyOp) {
+        case SUM -> currentVal -= valWhereHumnIsNot;
+        case SUB -> currentVal += valWhereHumnIsNot;
+        case MULTIPLICATION -> currentVal /= valWhereHumnIsNot;
+        case DIVISION -> currentVal *= valWhereHumnIsNot;
+      }
+      // move to next monkey
+      currentMonkey = monkeyMap.get(currentMonkey.operationMonkeys.get(0));
+    } else {
+      //get value from the left side
+      valWhereHumnIsNot = monkeyMap.get(currentMonkey.operationMonkeys.get(0)).operate(monkeyMap);
+      Monkey.Operation currentMonkeyOp = currentMonkey.operation;
+
+      // perform operation
+      switch (currentMonkeyOp) {
+        case SUM -> currentVal -= valWhereHumnIsNot;
+        case SUB -> currentVal = valWhereHumnIsNot - currentVal;
+        case MULTIPLICATION -> currentVal /= valWhereHumnIsNot;
+        case DIVISION -> currentVal = valWhereHumnIsNot / currentVal;
+      }
+      // move to next monkey
+      currentMonkey = monkeyMap.get(currentMonkey.operationMonkeys.get(1));
+    }
+    // recurse
+    return recurseMonkeyTree(currentMonkey, currentVal, monkeyMap);
   }
 
-
-  private Double processMonkeyPart2(Monkey m, HashMap<String, Monkey> monkeyMap, Double humnNo) {
-    if (m.name.equals("root")) {
-      Double first = processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo);
-      Double second = processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
-      Double diff = first - second;
-      return diff;
-    } else if (m.name.equals("humn")) {
-      return humnNo;
-    }
-    switch (m.operation) {
-      case NOTHING -> {
-        return m.value;
-      }
-      case SUB -> {
-        return processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo) - processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
-      }
-      case MULTIPLICATION -> {
-        return processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo) * processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
-      }
-      case DIVISION -> {
-        return processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo) / processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
-      }
-      case SUM -> {
-        return processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap, humnNo) + processMonkeyPart2(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap, humnNo);
-      }
-      default -> {
-        throw new IllegalStateException("Unexpected value: " + m.operation);
-      }
-    }
-  }
-
-
-  private Double processMonkeyPart1(Monkey m, HashMap<String, Monkey> monkeyMap) {
-    switch (m.operation) {
-      case NOTHING -> {
-        return m.value;
-      }
-      case SUB -> {
-        return processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap) - processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap);
-      }
-      case MULTIPLICATION -> {
-        return processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap) * processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap);
-      }
-      case DIVISION -> {
-        return processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap) / processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap);
-      }
-      case SUM -> {
-        return processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(0)), monkeyMap) + processMonkeyPart1(monkeyMap.get(m.operationMonkeys.get(1)), monkeyMap);
-      }
-      default -> {
-        throw new IllegalStateException("Unexpected value: " + m.operation);
-      }
-    }
-  }
-
-  private HashMap<String, Monkey> buildMonkeyMap() {
+  private Map<String, Monkey> buildMonkeyMap() {
     var monkeyMap = new HashMap<String, Monkey>();
     for (String s : getInputLines()) {
       Monkey m = Monkey.parse(s);
@@ -124,7 +92,28 @@ public class Day21 extends Puzzle {
     return monkeyMap;
   }
 
+  private Boolean isHumnUnderThisMonkey(Monkey m, Map<String, Monkey> monkeyMap) {
+    if (m.name().equals("humn")) return true;
+    if (m.operation() == Monkey.Operation.NOTHING) return false;
+
+    return isHumnUnderThisMonkey(monkeyMap.get(m.operationMonkeys().get(0)), monkeyMap) || isHumnUnderThisMonkey(monkeyMap.get(m.operationMonkeys().get(1)), monkeyMap);
+  }
+
   private record Monkey(List<String> operationMonkeys, Operation operation, Double value, String name) {
+
+    private Double operate(Map<String, Monkey> monkeyMap) {
+      return switch (operation) {
+        case SUM ->
+          monkeyMap.get(this.operationMonkeys.get(0)).operate(monkeyMap) + monkeyMap.get(this.operationMonkeys.get(1)).operate(monkeyMap);
+        case SUB ->
+          monkeyMap.get(this.operationMonkeys.get(0)).operate(monkeyMap) - monkeyMap.get(this.operationMonkeys.get(1)).operate(monkeyMap);
+        case MULTIPLICATION ->
+          monkeyMap.get(this.operationMonkeys.get(0)).operate(monkeyMap) * monkeyMap.get(this.operationMonkeys.get(1)).operate(monkeyMap);
+        case DIVISION ->
+          monkeyMap.get(this.operationMonkeys.get(0)).operate(monkeyMap) / monkeyMap.get(this.operationMonkeys.get(1)).operate(monkeyMap);
+        case NOTHING -> this.value;
+      };
+    }
 
     public static Monkey parse(String s) {
       String[] words = s.split(" ");
@@ -145,10 +134,10 @@ public class Day21 extends Puzzle {
         return new Monkey(operationMonkeys, op, 0.0, name);
       }
     }
-  }
 
-  private enum Operation {
-    MULTIPLICATION, DIVISION, SUM, SUB, NOTHING
-  }
+    private enum Operation {
+      MULTIPLICATION, DIVISION, SUM, SUB, NOTHING
+    }
 
+  }
 }
