@@ -22,7 +22,7 @@ public abstract class Puzzle {
   }
 
   public String[] getInputLines() {
-    return input.split("\n");
+    return input.split("\\r?\n");
   }
 
   public String getInput() {
