@@ -60,21 +60,11 @@ public class Day23 extends Puzzle {
     }
 
     private String getNumberEmptyTilesInSmallestRectangle() {
-      int count = 0;
       int minY = elves.stream().map(elf -> elf.y).min(Comparator.naturalOrder()).orElse(0);
       int maxY = elves.stream().map(elf -> elf.y).max(Comparator.naturalOrder()).orElse(0);
       int minX = elves.stream().map(elf -> elf.x).min(Comparator.naturalOrder()).orElse(0);
       int maxX = elves.stream().map(elf -> elf.x).max(Comparator.naturalOrder()).orElse(0);
-
-      for (int j = minY; j <= maxY; j++) {
-        for (int i = minX; i <= maxX; i++) {
-          if (!this.elves.contains(new Elf(i, j))) {
-            count++;
-          }
-        }
-      }
-
-      return String.valueOf(count);
+      return String.valueOf((maxY - minY + 1) * (maxX - minX + 1) - elves.size());
     }
 
     public void doRounds(int noOfRounds) {
@@ -83,23 +73,23 @@ public class Day23 extends Puzzle {
 
     public boolean doRound() {
       boolean anyElfMoved = false;
-      List<Elf> elfsThatCouldMove = new ArrayList<>();
+      List<Elf> elvesThatCouldMove = new ArrayList<>();
       // first half: check whether they have another adjacent elf or not
       for (Elf elf : elves) {
         if (elf.anyAdjacentElf(elves)) {
-          elfsThatCouldMove.add(elf);
+          elvesThatCouldMove.add(elf);
         }
       }
 
       // second half: we need to check where the elves want to go, if only one elf wants to go to that position, then it moves,
-      // if there are more than one elves that want to jump into the same position, then neither of them move
+      // if there are more than one elf that want to jump into the same position, then neither of them move
 
       Map<Elf, Elf> wantToGoPositions = new HashMap<>();
 
       // getting the directions we need to follow
       List<Direction> directions = Direction.getDirections();
 
-      for (Elf elf : elfsThatCouldMove) {
+      for (Elf elf : elvesThatCouldMove) {
         for (Direction direction : directions) {
           if (elf.canMoveToDirection(direction, elves)) {
             Elf newPositionElf = elf.move(direction);
@@ -107,7 +97,6 @@ public class Day23 extends Puzzle {
               // it means this position won't work
               wantToGoPositions.put(newPositionElf, null);
             } else {
-              // mutable list
               wantToGoPositions.put(newPositionElf, elf);
             }
             break;
@@ -225,6 +214,7 @@ public class Day23 extends Puzzle {
       }
       return true;
     }
+
     private List<Elf> adjacentElves() {
       List<Elf> adjacentElves = new ArrayList<>();
       adjacentElves.add(move(Direction.NORTH));
@@ -238,11 +228,8 @@ public class Day23 extends Puzzle {
       return adjacentElves;
     }
 
-    private Elf move(int deltaX, int deltaY){
+    private Elf move(int deltaX, int deltaY) {
       return new Elf(x + deltaX, y + deltaY);
     }
-
   }
-
-
 }
