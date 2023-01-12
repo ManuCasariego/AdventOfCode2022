@@ -34,7 +34,7 @@ public class RunCode {
 
 
   public static void main(String[] args) throws IOException {
-    run(24);
+    run(23);
   }
 
 

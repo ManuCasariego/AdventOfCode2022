@@ -29,9 +29,9 @@ public class Day23 extends Puzzle {
     Board b = buildBoard();
 
     int count = 0;
-    boolean anyElfMoved = true;
-    while (anyElfMoved) {
-      anyElfMoved = b.doRound();
+    int numberOfElvesMoved = 1;
+    while (numberOfElvesMoved > 0) {
+      numberOfElvesMoved = b.doRound();
       count++;
     }
     return String.valueOf(count);
@@ -54,6 +54,7 @@ public class Day23 extends Puzzle {
     return b;
   }
 
+
   private record Board(List<Elf> elves) {
     public Board() {
       this(new ArrayList<>());
@@ -67,23 +68,41 @@ public class Day23 extends Puzzle {
       return String.valueOf((maxY - minY + 1) * (maxX - minX + 1) - elves.size());
     }
 
+    private AuxiliaryBoard buildAuxBoard(List<Elf> elves) {
+      // we adjust x and y accordingly in order to fit a native array that goes from 0 to n
+      int minY = elves.stream().map(elf -> elf.y).min(Comparator.naturalOrder()).orElse(0);
+      int maxY = elves.stream().map(elf -> elf.y).max(Comparator.naturalOrder()).orElse(0);
+      int minX = elves.stream().map(elf -> elf.x).min(Comparator.naturalOrder()).orElse(0);
+      int maxX = elves.stream().map(elf -> elf.x).max(Comparator.naturalOrder()).orElse(0);
+
+      int numberOfColumns = maxX - minX + 1;
+      int numberOfRows = maxY - minY + 1;
+      int marginX = -minX;
+      int marginY = -minY;
+      AuxiliaryBoard auxBoard = new AuxiliaryBoard(numberOfColumns, numberOfRows, marginX, marginY);
+
+      elves.forEach(auxBoard::put);
+
+      return auxBoard;
+    }
+
     public void doRounds(int noOfRounds) {
       IntStream.range(0, noOfRounds).forEach(i -> doRound());
     }
 
-    public boolean doRound() {
-      boolean anyElfMoved = false;
+    public int doRound() {
+      int numberOfElvesMoved = 0;
+      AuxiliaryBoard auxBoard = buildAuxBoard(elves);
       List<Elf> elvesThatCouldMove = new ArrayList<>();
       // first half: check whether they have another adjacent elf or not
       for (Elf elf : elves) {
-        if (elf.anyAdjacentElf(elves)) {
+        if (elf.anyAdjacentElf(auxBoard)) {
           elvesThatCouldMove.add(elf);
         }
       }
 
       // second half: we need to check where the elves want to go, if only one elf wants to go to that position, then it moves,
       // if there are more than one elf that want to jump into the same position, then neither of them move
-
       Map<Elf, Elf> wantToGoPositions = new HashMap<>();
 
       // getting the directions we need to follow
@@ -91,8 +110,8 @@ public class Day23 extends Puzzle {
 
       for (Elf elf : elvesThatCouldMove) {
         for (Direction direction : directions) {
-          if (elf.canMoveToDirection(direction, elves)) {
-            Elf newPositionElf = elf.move(direction);
+          if (elf.canMoveToDirection(direction, auxBoard)) {
+            Elf newPositionElf = elf.getMovedElf(direction);
             if (wantToGoPositions.containsKey(newPositionElf)) {
               // it means this position won't work
               wantToGoPositions.put(newPositionElf, null);
@@ -107,14 +126,14 @@ public class Day23 extends Puzzle {
       // final check: now we only move the elves that want to jump into a position that no one else will jump to
       for (Map.Entry<Elf, Elf> entry : wantToGoPositions.entrySet()) {
         if (entry.getValue() != null) {
-          anyElfMoved = true;
+          numberOfElvesMoved++;
           this.elves.remove(entry.getValue());
           this.elves.add(entry.getKey());
         }
       }
 //      draw();
       Direction.nextCycle();
-      return anyElfMoved;
+      return numberOfElvesMoved;
     }
 
     private void draw() {
@@ -172,64 +191,91 @@ public class Day23 extends Puzzle {
 
   private record Elf(int x, int y) {
 
-    private Elf move(Direction direction) {
+    public boolean anyAdjacentElf(AuxiliaryBoard board) {
+      for (Elf adjElf : this.adjacentElves()) {
+        if (board.contains(adjElf.x, adjElf.y)) return true;
+      }
+      return false;
+    }
+
+    private List<Elf> adjacentElves() {
+      List<Elf> adjacentElves = new ArrayList<>();
+      adjacentElves.add(getMovedElf(Direction.NORTH));
+      adjacentElves.add(getMovedElf(Direction.SOUTH));
+      adjacentElves.add(getMovedElf(Direction.EAST));
+      adjacentElves.add(getMovedElf(Direction.WEST));
+      adjacentElves.add(getMovedElf(1, 1));
+      adjacentElves.add(getMovedElf(1, -1));
+      adjacentElves.add(getMovedElf(-1, 1));
+      adjacentElves.add(getMovedElf(-1, -1));
+      return adjacentElves;
+    }
+
+    private Elf getMovedElf(int deltaX, int deltaY) {
+      return new Elf(x + deltaX, y + deltaY);
+    }
+
+    private Elf getMovedElf(Direction direction) {
       switch (direction) {
         case NORTH -> {
-          return move(0, -1);
+          return getMovedElf(0, -1);
         }
         case SOUTH -> {
-          return move(0, 1);
+          return getMovedElf(0, 1);
         }
         case WEST -> {
-          return move(-1, 0);
+          return getMovedElf(-1, 0);
         }
         case EAST -> {
-          return move(1, 0);
+          return getMovedElf(1, 0);
         }
         default -> throw new RuntimeException("no direction found");
       }
     }
 
-    public boolean anyAdjacentElf(List<Elf> elves) {
-      for (Elf adjElf : this.adjacentElves()) {
-        if (elves.contains(adjElf)) return true;
-      }
-      return false;
-    }
-
-    public boolean canMoveToDirection(Direction direction, List<Elf> elves) {
+    public boolean canMoveToDirection(Direction direction, AuxiliaryBoard board) {
       switch (direction) {
         case WEST, EAST -> {
-          if (elves.contains(move(direction)) ||
-            elves.contains(move(direction).move(Direction.NORTH)) ||
-            elves.contains(move(direction).move(Direction.SOUTH)))
+          if (board.contains(getMovedElf(direction)) || board.contains(getMovedElf(direction).getMovedElf(Direction.NORTH)) || board.contains(getMovedElf(direction).getMovedElf(Direction.SOUTH)))
             return false;
         }
         case NORTH, SOUTH -> {
-          if (elves.contains(move(direction)) ||
-            elves.contains(move(direction).move(Direction.EAST)) ||
-            elves.contains(move(direction).move(Direction.WEST)))
+          if (board.contains(getMovedElf(direction)) || board.contains(getMovedElf(direction).getMovedElf(Direction.EAST)) || board.contains(getMovedElf(direction).getMovedElf(Direction.WEST)))
             return false;
         }
       }
       return true;
     }
+  }
 
-    private List<Elf> adjacentElves() {
-      List<Elf> adjacentElves = new ArrayList<>();
-      adjacentElves.add(move(Direction.NORTH));
-      adjacentElves.add(move(Direction.SOUTH));
-      adjacentElves.add(move(Direction.EAST));
-      adjacentElves.add(move(Direction.WEST));
-      adjacentElves.add(move(1, 1));
-      adjacentElves.add(move(1, -1));
-      adjacentElves.add(move(-1, 1));
-      adjacentElves.add(move(-1, -1));
-      return adjacentElves;
+  // creating an auxiliary board to add elves positions, this way we can do the checks way quicker than iterating a list
+  private record AuxiliaryBoard(boolean[][] board, int marginX, int marginY) {
+    public AuxiliaryBoard(int noOfColumns, int noOfRows, int marginX, int marginY) {
+      this(new boolean[noOfColumns][noOfRows], marginX, marginY);
     }
 
-    private Elf move(int deltaX, int deltaY) {
-      return new Elf(x + deltaX, y + deltaY);
+    private boolean contains(int x, int y) {
+      int adjustedX = x + marginX;
+      int adjustedY = y + marginY;
+
+      if (adjustedX >= 0 && adjustedY >= 0 && adjustedX < board.length && adjustedY < board[adjustedX].length) {
+        return board[adjustedX][adjustedY];
+      } else return false;
+    }
+
+    private boolean contains(Elf elf) {
+      return contains(elf.x, elf.y);
+    }
+
+    public void put(Elf elf) {
+      put(elf.x, elf.y);
+    }
+
+    public void put(int x, int y) {
+      int adjustedX = x + marginX;
+      int adjustedY = y + marginY;
+      board[adjustedX][adjustedY] = true;
     }
   }
+
 }
