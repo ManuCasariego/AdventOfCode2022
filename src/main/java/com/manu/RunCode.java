@@ -29,6 +29,7 @@ import com.manu.day25.Day25;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class RunCode {
 
@@ -76,17 +77,12 @@ public class RunCode {
 
   }
 
-
-  public static String loadInput(String day) throws IOException {
-    String separator = System.getProperty("file.separator");
-    StringBuffer sb =
-      new StringBuffer().append(System.getProperty("user.dir")).append(separator).append("src").append(separator)
-        .append("main").append(separator).append("java").append(separator).append("com").append(separator).append("manu")
-        .append(separator).append(day).append(separator).append("input");
-    return Files.readString(Path.of(sb.toString()));
+  public static String loadInput2(String day) throws IOException {
+    Path path = Paths.get("src/main/java/com/manu/", day, "/input");
+    return Files.readString(path);
   }
 
   public static String loadInput(int day) throws IOException {
-    return loadInput("day" + String.format("%02d", day));
+    return loadInput2("day" + String.format("%02d", day));
   }
 }
